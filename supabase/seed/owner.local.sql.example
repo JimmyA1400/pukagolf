@@ -1,0 +1,40 @@
+/*
+  Who owns the league.
+
+  Migration 0029 creates the league_owner table but deliberately does not name
+  anybody: the owner's email address is not in the repo. Copy this file to
+  supabase/seed/owner.local.sql (gitignored by *.local.sql), put your own
+  address in, and run it against the database once you have signed up.
+
+  Two ways, both fine:
+
+  1. Give the address to the session that runs the migrations, and 0029 sets
+     the owner as it always did:
+
+       set app.owner_email = 'you@example.com';
+
+  2. Or run the statements below afterwards. They do the same thing, and are
+     safe to re-run: the owner is a single row, and conflicts update it.
+*/
+
+insert into league_owner (profile_id)
+select p.id
+  from profiles p
+  join auth.users u on u.id = p.id
+ where lower(u.email) = lower('you@example.com')
+on conflict (singleton) do update
+  set profile_id = excluded.profile_id, set_at = now();
+
+-- The owner is always an admin too.
+update profiles
+   set is_admin = true
+ where id = (select profile_id from league_owner);
+
+-- Nothing matched? The address has no account yet. Sign up first.
+do $check$
+begin
+  if not exists (select 1 from league_owner) then
+    raise exception 'No account uses that address yet; sign up, then run this again.';
+  end if;
+end;
+$check$;
