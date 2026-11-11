@@ -1,0 +1,153 @@
+"""Check the live database against supabase/migrations.
+
+Several early migrations were applied through the SQL editor in trimmed form,
+so the repo can quietly stop describing production. This builds one SQL query
+that compares the two and returns only the differences:
+
+  fn_missing_live     functions the files define that production lacks
+  fn_extra_live       functions production has that no file defines
+  fn_overloaded_live  names with more than one signature in production, which
+                      is what an argument change leaves behind
+  fn_body_differs     functions whose code differs, ignoring comments and
+                      whitespace, so a copy pasted without comments still
+                      counts as the same
+  pol_*, tab_*, trg_* the same for policies, tables and triggers
+
+Every column comes back NULL when the two agree.
+
+Usage:
+    python scripts/drift-check.py > drift-check.sql
+    then paste drift-check.sql into the Supabase SQL editor and run it.
+
+The comparison runs inside the database because the SQL editor's results grid
+truncates long values; returning only the differences keeps them short.
+"""
+
+import hashlib
+import pathlib
+import re
+
+MIGRATIONS = pathlib.Path(__file__).resolve().parent.parent / "supabase" / "migrations"
+
+FUNCTION = re.compile(
+    r"create\s+(?:or\s+replace\s+)?function\s+([a-z_]+)\s*\((.*?)\)\s*returns.*?"
+    r"\bas\s+(\$[a-z_]*\$)(.*?)\3",
+    re.S | re.I,
+)
+DROP_FUNCTION = re.compile(r"drop\s+function\s+(?:if\s+exists\s+)?([a-z_]+)\s*\(", re.I)
+POLICY = re.compile(r"create\s+policy\s+([a-z_]+)\s+on\s+([a-z_]+)", re.I)
+DROP_POLICY = re.compile(r"drop\s+policy\s+(?:if\s+exists\s+)?([a-z_]+)\s+on\s+([a-z_]+)", re.I)
+TABLE = re.compile(r"create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z_]+)", re.I)
+TRIGGER = re.compile(
+    r"create\s+trigger\s+([a-z_]+)\s+(?:before|after)\s+[a-z ,]+?\s+on\s+([a-z_.]+)", re.I
+)
+
+
+def without_comments(sql: str) -> str:
+    sql = re.sub(r"/\*.*?\*/", "", sql, flags=re.S)
+    return re.sub(r"--[^\n]*", "", sql)
+
+
+def blank_comments(sql: str) -> str:
+    """Comments turned to spaces, so offsets still line up with the raw text."""
+    return re.sub(r"/\*.*?\*/|--[^\n]*", lambda m: " " * len(m.group(0)), sql, flags=re.S)
+
+
+def fingerprint(body: str) -> str:
+    """Must match the normalisation the query applies to prosrc below."""
+    return hashlib.md5(re.sub(r"\s+", "", without_comments(body)).encode("utf-8")).hexdigest()
+
+
+def read_schema():
+    bodies, policies, tables, triggers = {}, set(), set(), set()
+
+    for path in sorted(MIGRATIONS.glob("*.sql")):
+        raw = path.read_text(encoding="utf-8")
+        plain = without_comments(raw)
+
+        # Function bodies come from the raw text: their comments are part of
+        # what production stores, and fingerprint() strips them itself.
+        #
+        # Creates and drops are applied in the order they appear, so dropping
+        # a function to change its arguments and creating it again (0033 does
+        # this to owner_start_new_week) leaves it defined. Drops are found with
+        # the comments blanked out, so one mentioned in a comment doesn't count.
+        changes = [(m.start(), m.group(1).lower(), m.group(4)) for m in FUNCTION.finditer(raw)]
+        changes += [
+            (m.start(), m.group(1).lower(), None)
+            for m in DROP_FUNCTION.finditer(blank_comments(raw))
+        ]
+        for _, name, body in sorted(changes, key=lambda change: change[0]):
+            if body is None:
+                bodies.pop(name, None)
+            else:
+                bodies[name] = body
+
+        for match in POLICY.finditer(plain):
+            policies.add(f"{match.group(2).lower()}.{match.group(1).lower()}")
+        for match in DROP_POLICY.finditer(plain):
+            name = f"{match.group(2).lower()}.{match.group(1).lower()}"
+            # A drop followed by a create of the same name is a replacement.
+            if not POLICY.search(plain[match.end():]):
+                policies.discard(name)
+        for match in TABLE.finditer(plain):
+            tables.add(match.group(1).lower())
+        for match in TRIGGER.finditer(plain):
+            triggers.add(f"{match.group(2).split('.')[-1].lower()}.{match.group(1).lower()}")
+
+    return bodies, policies, tables, triggers
+
+
+def text_array(items) -> str:
+    return "array[" + ", ".join(f"'{item}'" for item in sorted(items)) + "]::text[]"
+
+
+def build_query() -> str:
+    bodies, policies, tables, triggers = read_schema()
+    values = ",\n    ".join(f"('{name}', '{fingerprint(body)}')" for name, body in sorted(bodies.items()))
+
+    # The same normalisation as fingerprint(): comments, then all whitespace.
+    live_hash = (
+        "md5(regexp_replace(regexp_replace(regexp_replace(p.prosrc, "
+        r"'/\*.*?\*/', '', 'g'), '--[^\n]*', '', 'g'), '\s+', '', 'g'))"
+    )
+
+    return f"""-- Drift check, generated by scripts/drift-check.py. Every column is NULL when
+-- production matches supabase/migrations.
+with repo_fn(name, hash) as (values
+    {values}
+),
+live_fn as (
+  select p.proname as name, {live_hash} as hash
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public'
+),
+live_pol as (select tablename || '.' || policyname as name from pg_policies where schemaname = 'public'),
+live_tab as (select table_name::text as name from information_schema.tables
+              where table_schema = 'public' and table_type = 'BASE TABLE'),
+live_trg as (
+  select c.relname || '.' || t.tgname as name
+    from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
+   where not t.tgisinternal and n.nspname in ('public', 'auth')
+)
+select
+  (select string_agg(name, ', ') from repo_fn where name not in (select name from live_fn)) as fn_missing_live,
+  (select string_agg(name, ', ') from (select distinct name from live_fn) l
+    where name not in (select name from repo_fn)) as fn_extra_live,
+  (select string_agg(name || ' x' || c, ', ') from (select name, count(*) c from live_fn group by name
+    having count(*) > 1) o) as fn_overloaded_live,
+  (select string_agg(r.name, ', ' order by r.name) from repo_fn r join live_fn l on l.name = r.name
+    where l.hash <> r.hash) as fn_body_differs,
+  (select string_agg(x, ', ') from unnest({text_array(policies)}) x
+    where x not in (select name from live_pol)) as pol_missing_live,
+  (select string_agg(name, ', ') from live_pol where name <> all ({text_array(policies)})) as pol_extra_live,
+  (select string_agg(x, ', ') from unnest({text_array(tables)}) x
+    where x not in (select name from live_tab)) as tab_missing_live,
+  (select string_agg(name, ', ') from live_tab where name <> all ({text_array(tables)})) as tab_extra_live,
+  (select string_agg(x, ', ') from unnest({text_array(triggers)}) x
+    where x not in (select name from live_trg)) as trg_missing_live;
+"""
+
+
+if __name__ == "__main__":
+    print(build_query())

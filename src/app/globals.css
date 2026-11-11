@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/*
+  Clubhouse palette. Committed to a single light scheme on purpose — the design
+  is a paper scorecard, and a dark variant would fight that rather than serve it.
+*/
+@theme {
+  --color-cream: #faf7ec;
+  --color-sand: #e9e2cb;
+  --color-card: #fcfaf2;
+  --color-ink: #1c1b18;
+  --color-ink-soft: #6f6a5c;
+  --color-rule: #1c1b18;
+  --color-hairline: #cfc7ae;
+  --color-forest: #2e5233;
+  --color-forest-deep: #1d3521;
+  --color-clay: #b0392c;
+  --color-birdie: #4a7c4e;
+  --color-highlight: #dcd6ba;
+
+  --font-display: var(--font-display-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-mono-face), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/*
+  Weather strip motion. Small on purpose: it runs above the scorecard all
+  round, and anything that pulls the eye away from entering a score is a
+  cost. Every use is behind motion-safe:, so a device set to reduce motion
+  gets a still strip.
+*/
+@theme {
+  --animate-weather-spin: weather-spin 18s linear infinite;
+  --animate-weather-drift: weather-drift 6s ease-in-out infinite;
+  --animate-weather-fall: weather-fall 1.8s ease-in-out infinite;
+  --animate-weather-flash: weather-flash 5s ease-in-out infinite;
+  --animate-weather-breathe: weather-breathe 5s ease-in-out infinite;
+  --animate-strip-in: strip-in 450ms ease-out both;
+
+  @keyframes weather-spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes weather-drift {
+    0%, 100% { transform: translateX(-2px); }
+    50% { transform: translateX(2px); }
+  }
+  @keyframes weather-fall {
+    0%, 100% { transform: translateY(-1px); }
+    50% { transform: translateY(2px); }
+  }
+  @keyframes weather-flash {
+    0%, 86%, 92%, 100% { filter: none; }
+    88%, 94% { filter: brightness(1.9); }
+  }
+  @keyframes weather-breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  @keyframes strip-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+:root {
+  color-scheme: light;
+}
+
+/*
+  Sunlight mode (SunlightToggle): for reading a phone on the course at noon.
+  White paper, black ink, rules dark enough to see and everything a size up.
+  Unlayered, so it wins over the theme's own values.
+*/
+:root[data-sunlight] {
+  --color-cream: #ffffff;
+  --color-card: #ffffff;
+  --color-sand: #f2f2f2;
+  --color-ink: #000000;
+  --color-ink-soft: #2b2a26;
+  --color-rule: #000000;
+  --color-hairline: #5f5a4c;
+  --color-forest: #123018;
+  --color-forest-deep: #0a200e;
+  --color-clay: #9a1b10;
+  --color-highlight: #ffe680;
+  font-size: 112.5%;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+}
+
+/*
+  Section heads: slab serif over a heavy rule, the way a printed tee sheet
+  divides itself.
+*/
+@utility section-head {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-bottom: 2px solid var(--color-rule);
+}
+
+/* Small caps-ish monospace labels used for every piece of metadata. */
+@utility meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}

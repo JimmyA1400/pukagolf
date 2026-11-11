@@ -1,0 +1,84 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+!.env.example
+
+# database backups: real phone numbers and password hashes
+/backups/
+
+# test-only logins for the tester agents (scripts/test-db/make-testers.py)
+*.local.json
+*.local.sql
+/.tester-runs/
+
+# material kept out of the public repo: agent system prompts, the security
+# review, internal notes. See docs/README.md and .claude/agents/README.md.
+/private/
+
+# anything local: tester logins, the live/test project ids, local seeds
+*.local
+*.local.*
+secrets/
+*.secret
+*.secrets
+
+# local database files and dumps
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+/supabase/.branches/
+/supabase/.temp/
+/.supabase/
+
+# ...but the committed examples that show what those local files look like
+!*.local.sql.example
+!*.local.example
+!*.local.txt.example
+
+# `next dev` rewrites these agent-instruction files; the project's own notes
+# live in /private instead, so let the tool regenerate them untracked.
+/AGENTS.md
+/CLAUDE.md

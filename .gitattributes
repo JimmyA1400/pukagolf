@@ -1,0 +1,2 @@
+# Shell scripts break on Windows line endings, whatever the checkout does.
+*.sh text eol=lf
