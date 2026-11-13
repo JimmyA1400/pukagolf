@@ -4,6 +4,8 @@ Live golf scoring for clubs and their leagues. An admin sets the week's tee
 times and pairings; within each group the scoring rotates, so nobody enters
 their own card. Scores appear on everyone's phone as they are tapped in.
 
+[![CI](https://github.com/JimmyA1400/pukagolf/actions/workflows/ci.yml/badge.svg)](https://github.com/JimmyA1400/pukagolf/actions/workflows/ci.yml)
+
 **Live at [pukagolf.vercel.app](https://pukagolf.vercel.app)**
 
 > Published for viewing as a portfolio. Some components are kept out of this
