@@ -11,17 +11,34 @@ their own card. Scores appear on everyone's phone as they are tapped in.
 
 ## Screenshots
 
-<!-- Replace these with real captures: 1200px wide, PNG, in docs/images/. -->
+All taken from the app's demo mode, which runs with no database behind it, so
+the players and scores here are seeded fixtures rather than a real club's week.
 
-| | |
-|---|---|
-| ![The league page](docs/images/league.png) | ![Entering a card](docs/images/score-entry.png) |
-| _Leaderboard, leader card and skins, live_ | _Score entry, sized for one hand on a course_ |
+![The league page: leader card and live leaderboard](docs/images/league.png)
 
-| | |
-|---|---|
-| ![Club admin](docs/images/admin.png) | ![Setting up an event](docs/images/event-setup.png) |
-| _Members, staff roles and league rules_ | _Invite, draft sides, pick the game_ |
+_The league page. The leader card and the hole-by-hole board update as scores
+are tapped in; [the whole page](docs/images/league-full.png) carries the
+scorecards, standings, skins and the clubhouse feed below._
+
+<table>
+<tr>
+<td width="46%"><img src="docs/images/score-entry.png" alt="Entering a score on a phone" width="320"></td>
+<td valign="top">
+
+**Entering a card, on the phone it will actually be used on.** The scorer is
+told whose card they are keeping — never their own. One hole at a time, with
+the par-relative shortcuts next to the counter, because the alternative is
+thumbing a number field in bright sun with a glove on. Saving moves to the
+next hole; a tap with no signal is queued and marked as held.
+
+</td>
+</tr>
+</table>
+
+![The landing page](docs/images/landing.png)
+
+_The two ways in are deliberately separate: the league needs an account, a
+one-off outing needs only its link._
 
 ## What it does
 
