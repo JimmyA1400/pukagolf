@@ -26,7 +26,6 @@ const HIDE_DEV_CHROME = `
 const DESKTOP = { width: 1280, height: 860 };
 
 const shots = [
-  { file: "landing", path: "/", viewport: DESKTOP },
   { file: "league", path: "/league", viewport: DESKTOP },
   { file: "league-full", path: "/league", viewport: DESKTOP, full: true },
   {
@@ -69,7 +68,11 @@ for (const s of shots) {
     await page.addStyleTag({ content: HIDE_DEV_CHROME });
     if (s.before) await s.before(page);
     await page.waitForTimeout(500);
-    await page.screenshot({ path: `${OUT}${s.file}.png`, fullPage: !!s.full });
+    const target = s.element ? page.locator(s.element).first() : page;
+    await target.screenshot({
+      path: `${OUT}${s.file}.png`,
+      ...(s.element ? {} : { fullPage: !!s.full }),
+    });
     const text = await page.locator("main").innerText().catch(() => "(no main)");
     console.log(
       `OK   ${s.file}.png  <- ${s.path}${s.phone ? " [phone]" : ""}\n` +

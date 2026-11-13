@@ -35,11 +35,6 @@ next hole; a tap with no signal is queued and marked as held.
 </tr>
 </table>
 
-![The landing page](docs/images/landing.png)
-
-_The two ways in are deliberately separate: the league needs an account, a
-one-off outing needs only its link._
-
 ## What it does
 
 - **A week of league golf.** Tee times, groups, a rotating scorer within each

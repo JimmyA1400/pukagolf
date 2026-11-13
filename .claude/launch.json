@@ -2,15 +2,24 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "golf-site",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
-      "runtimeArgs": ["run", "dev"],
+      "name": "pukagolf",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
-      "name": "golf-site-prod",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
-      "runtimeArgs": ["run", "start", "--", "--port", "3100"],
+      "name": "pukagolf-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "start",
+        "--",
+        "--port",
+        "3100"
+      ],
       "port": 3100
     }
   ]
